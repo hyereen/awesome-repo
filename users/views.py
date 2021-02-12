@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view
 from rest_framework.views import APIView
 from rest_framework import status
 from rooms.serializers import RoomSerializer
+from rooms.models import Room 
 from .models import User
 from .serializers import ReadUserSerializer, WriteUserSerializer
 
@@ -40,5 +41,18 @@ class FavsView(APIView):
         serializer = RoomSerializer(user.favs.all(), many=True).data
         return Response(serializer)
 
-    def post(self, request):
-        pass
+    def put(self, request):
+        pk = request.data.get("pk", None)
+        user = request.user
+        if pk is not None:
+            try:
+                room = Room.objects.get(pk=pk)
+                if room in user.favs.all():
+                    user.favs.remove(room)
+                else:
+                    user.favs.add(room)
+                return Response()
+            except Room.DoesNotExist:
+                pass
+        else:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
