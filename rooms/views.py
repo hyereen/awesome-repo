@@ -26,18 +26,49 @@ class RoomsView(APIView):
 
 class RoomView(APIView):
 
-    def get(self, request, pk):
+    def get_room(self, pk):
         try:
             room = Room.objects.get(pk=pk)
+            return room
+        except Room.DoesNotExist:
+            return None
+
+    def get(self, request, pk):
+        room = self.get_room(pk)
+        if room is not None:
             serializer = ReadRoomSerializer(room).data
             return Response(serializer)
         
-        except Room.DoesNotExist:
+        else:
             return Response(status=status.HTTP_404_NOT_FOUND)
 
 
-    def put(self, request):
-        pass
+    def put(self, request, pk):
+        room = self.get_room(pk)
+        if room is not None:
+            if room.user != request.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = WriteRoomSerializer(room, data=request.data, partial=True) 
+            # 시리얼라이저에게 업데이트한다고 알려주기 위해 partial=True -> 데이터를 모두 보내는 것이 아니라 내가 바꾸고싶은 데이타만 보내는 것
+            if serializer.is_valid():
+                room = serializer.save()
+                return Response(ReadRoomSerializer(room).data)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # 에러확인
+            # print(serializer.is_valid(), serializer.errors)
+            return Response()
+        
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
-    def delete(self, request):
-        pass
+    def delete(self, request, pk):
+        room = self.get_room(pk)
+        if room.user != request.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        if room is not None:
+            room.delete()
+            return Response(status=status.HTTP_200_OK)
+        
+        else:
+            return Response(status=status.HTTP_404_NOT_FOUND)
