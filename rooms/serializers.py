@@ -2,18 +2,16 @@ from rest_framework import serializers
 from users.serializers import RelatedUserSerializer
 from .models import Room
 
-class ReadRoomSerializer(serializers.ModelSerializer):
+class RoomSerializer(serializers.ModelSerializer):
 
     user = RelatedUserSerializer()
     class Meta:
         model = Room
         exclude = ("modified",)
 
-class WriteRoomSerializer(serializers.ModelSerializer):
-    
-    class Meta:
-        model = Room
-        exclude=("modified", )
+        # 새로운 room을 create할때나 update할 때 user validate하면 안돼
+        # list를 create하면 돼 read-only list
+        read_only_fields = ("user", "id", "created", "updated")
 
     def validate(self, data):
         # 업데이트 하는 경우 
