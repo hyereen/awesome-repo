@@ -140,4 +140,10 @@ AUTH_USER_MODEL = "users.User"
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
+
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        #'rest_framework.authentication.BasicAuthentication', # 이걸 지우면 여전히 정상작동함
+        "config.authentication.JWTAuthentication",
+        'rest_framework.authentication.SessionAuthentication', # 이걸 지우면 인증이 변경되었다고 뜨고 더이상 로그인 상태가 아니게 됨
+    ]
 }
