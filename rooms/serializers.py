@@ -25,3 +25,11 @@ class WriteRoomSerializer(serializers.Serializer):
 
     def create(self, validated_data):
         return Room.objects.create(**validated_data) # 반드시 리턴해줘야 함 
+
+    def validate(self, data):
+        check_in = data.get('check_in')
+        check_out = data.get('check_out')
+        if check_in == check_out:
+            raise serializers.ValidationError("Not enough time between changes")
+        else:
+            return data #반드시!
