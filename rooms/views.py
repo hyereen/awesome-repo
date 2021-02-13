@@ -1,16 +1,25 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response # django response와 다름! 할 수 있는게 더 많다
 from rest_framework import status
+from rest_framework.decorators import api_view
+from rest_framework.pagination import PageNumberPagination
 from .models import Room
 from .serializers import RoomSerializer
 
+class OwnPagination(PageNumberPagination):
+    page_size=20
+    # 더 많이 설정하고 싶은게 있으면 넣어주면 됌 
 class RoomsView(APIView):
 
     def get(self, request):
-
+        #paginator = PageNumberPagination()
+        #paginator.page_size = 20
+        paginator = OwnPagination()
         rooms = Room.objects.all()
-        serializer = RoomSerializer(rooms, many=True).data
-        return Response(serializer)
+        results = paginator.paginate_queryset(rooms, request)
+        # request를 paginator에게 파싱해준다는 것은 paginator가 page query argument를 찾아내야 한다는 것
+        serializer = RoomSerializer(results, many=True)
+        return paginator.get_paginated_response(serializer.data) 
 
     def post(self, request):
         if not request.user.is_authenticated:
@@ -72,3 +81,14 @@ class RoomView(APIView):
         
         else:
             return Response(status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(["GET"])
+def room_search(request):
+    paginator = PageNumberPagination()
+    paginator.page_size = 10
+    # 우리가 방을 찾고 있는 거니까 모든 room을 불러오는건 아니고 
+    rooms = Room.objects.filter()
+    results = paginator.paginate_queryset(rooms, request)
+    serializers = RoomSerializer(results, many=True)
+    return paginator.get_paginated_response(serializer.data) 
