@@ -85,10 +85,32 @@ class RoomView(APIView):
 
 @api_view(["GET"])
 def room_search(request):
+    max_price = request.GET.get('max_price', None)
+    min_price = request.GET.get('min_price', None)
+    beds = request.GET.get('beds', None)
+    bedrooms = request.GET.get('bedrooms', None)
+    bathrooms = request.GET.get('bathrooms', None)
+
+    filter_kwargs = {}
+    if max_price is not None:
+        filter_kwargs["price__lte"] = max_price
+    if min_price is not None:
+        filter_kwargs["price__gte"] = min_price
+    if beds is not None:
+        filter_kwargs["beds__gte"] = beds
+    if bedrooms is not None:
+        filter_kwargs["bedrooms__gte"] = bedrooms
+    if bathrooms is not None:
+        filter_kwargs["bathrooms__gte"] = bathrooms
+
     paginator = PageNumberPagination()
     paginator.page_size = 10
-    # 우리가 방을 찾고 있는 거니까 모든 room을 불러오는건 아니고 
-    rooms = Room.objects.filter()
+
+    try:
+        rooms = Room.objects.filter(**filter_kwargs)
+    except ValueError: # 필터에 이상한 값을 입력한 경우
+        rooms = Room.objects.all() # 모든 room을 리턴하도록 
+    
     results = paginator.paginate_queryset(rooms, request)
-    serializers = RoomSerializer(results, many=True)
+    serializer = RoomSerializer(results, many=True)
     return paginator.get_paginated_response(serializer.data) 
