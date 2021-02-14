@@ -1,86 +1,28 @@
 from rest_framework.views import APIView
+from rest_framework.viewsets import ModelViewSet # viewset
 from rest_framework.response import Response # django response와 다름! 할 수 있는게 더 많다
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.pagination import PageNumberPagination
+from rest_framework import permissions
 from .models import Room
 from .serializers import RoomSerializer
 
-class OwnPagination(PageNumberPagination):
-    page_size=20
-    # 더 많이 설정하고 싶은게 있으면 넣어주면 됌 
-class RoomsView(APIView):
 
-    def get(self, request):
-        #paginator = PageNumberPagination()
-        #paginator.page_size = 20
-        paginator = OwnPagination()
-        rooms = Room.objects.all()
-        results = paginator.paginate_queryset(rooms, request)
-        # request를 paginator에게 파싱해준다는 것은 paginator가 page query argument를 찾아내야 한다는 것
-        serializer = RoomSerializer(results, many=True, context={"request": request})
-        return paginator.get_paginated_response(serializer.data) 
+class RoomViewSet(ModelViewSet):
+    queryset = Room.objects.all()
+    serializer_class = RoomSerializer
 
-    def post(self, request):
-        if not request.user.is_authenticated:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        serializer = RoomSerializer(data=request.data)
-        if serializer.is_valid():
-            # serializer.create() create메소드를 직접 call하면 안돼
-            room = serializer.save(user=request.user) # creat, update가 아니라 save를 call해야 함 
-            room_serializer = RoomSerializer(room).data
-            return Response(data=room_serializer, status=status.HTTP_200_OK)
-        else:
-            return Response(data=serializer.errors, status=status.HTTP_400_BAD_REQUEST)    
+    def get_permissions(self):
 
-class RoomView(APIView):
-
-    def get_room(self, pk):
-        try:
-            room = Room.objects.get(pk=pk)
-            return room
-        except Room.DoesNotExist:
-            return None
-
-    def get(self, request, pk):
-        room = self.get_room(pk)
-        if room is not None:
-            serializer = RoomSerializer(room).data
-            return Response(serializer)
-        
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-
-    def put(self, request, pk):
-        room = self.get_room(pk)
-        if room is not None:
-            if room.user != request.user:
-                return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = RoomSerializer(room, data=request.data, partial=True) 
-            # 시리얼라이저에게 업데이트한다고 알려주기 위해 partial=True -> 데이터를 모두 보내는 것이 아니라 내가 바꾸고싶은 데이타만 보내는 것
-            if serializer.is_valid():
-                room = serializer.save()
-                return Response(RoomSerializer(room).data)
-            else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            # 에러확인
-            # print(serializer.is_valid(), serializer.errors)
-            return Response()
-        
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
-    def delete(self, request, pk):
-        room = self.get_room(pk)
-        if room.user != request.user:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        if room is not None:
-            room.delete()
-            return Response(status=status.HTTP_200_OK)
-        
-        else:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+        if self.action == "list" or self.action == "retrieve": # /rooms GET or /room/1/ GET
+            permission_Classes = [permissions.AllowAny] # 누구나 요청할 수 있도록 허용
+        elif self.action == "create": # 방 만들기
+            permission_Classes = [permissions.IsAuthenticated] # 인증받은 유저만 가능
+        else: # 이 외 모든 경우
+            # 우리만의 permission을 넣어야 함, 우리가 원하는 permission을 제공하지 않아서 만들어야 됨
+            # DELETE /rooms/1/ PUT /rooms/1/
+            permission_Classes = [IsOwner]
 
 
 @api_view(["GET"])
