@@ -4,7 +4,7 @@ from .models import Room
 
 class RoomSerializer(serializers.ModelSerializer):
 
-    user = RelatedUserSerializer()
+    user = RelatedUserSerializer(read_only=True)
     is_fav = serializers.SerializerMethodField()
 
     class Meta:
@@ -37,3 +37,8 @@ class RoomSerializer(serializers.ModelSerializer):
                 return obj in user.favs.all() #user.favs.all()는 배열 
                 # 1 in [1,2,3] 이어서 그 결과가 True인지 False인지 알 수 있게됨 
         return False
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        room = Room.objects.create(**validated_data, user=request.user)
+        return room
