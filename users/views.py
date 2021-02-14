@@ -23,7 +23,7 @@ class UsersViewSet(ModelViewSet):
         permission_classes = []
         if self.action == "list":
             permission_classes = [IsAdminUser]
-        elif self.action == "create" or self.action == "retrieve":
+        elif self.action == "create" or self.action == "retrieve" or self.action == "favs":
             permission_classes = [AllowAny]
         else:
             permission_classes = [IsSelf]
@@ -40,24 +40,22 @@ class UsersViewSet(ModelViewSet):
         if user is not None:
             encoded_jwt = jwt.encode({'pk': user.pk}, settings.SECRET_KEY, algorithm="HS256")
             return Response(data={'token':encoded_jwt, "id": user.pk})
-            
+
         
         else:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-
-class FavsView(APIView):
-
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
+    @action(detail=True) # /user/<id:pk> 일때만 작동
+    def favs(self, request, pk):
+        user = self.get_object() # view가 보여주는 object를 리턴함 
         serializer = RoomSerializer(user.favs.all(), many=True).data
         return Response(serializer)
 
-    def put(self, request):
-        pk = request.data.get("pk", None)
-        user = request.user
+    @favs.mapping.put # favs를 선언하고 mapping을 이용해서 그 fav를 확장
+    # put자리에 get, post, put, delete 등을 적으면 됨
+    def toggle_favs(self, reqeust, pk):
+        pk = reqeust.data.get("pk", None)
+        user = self.get_object()
         if pk is not None:
             try:
                 room = Room.objects.get(pk=pk)
