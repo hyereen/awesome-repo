@@ -7,6 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework import permissions
 from .models import Room
 from .serializers import RoomSerializer
+from .permissions import IsOwner
 
 
 class RoomViewSet(ModelViewSet):
@@ -16,13 +17,16 @@ class RoomViewSet(ModelViewSet):
     def get_permissions(self):
 
         if self.action == "list" or self.action == "retrieve": # /rooms GET or /room/1/ GET
-            permission_Classes = [permissions.AllowAny] # 누구나 요청할 수 있도록 허용
+            permission_classes = [permissions.AllowAny] # 누구나 요청할 수 있도록 허용
         elif self.action == "create": # 방 만들기
-            permission_Classes = [permissions.IsAuthenticated] # 인증받은 유저만 가능
+            permission_classes = [permissions.IsAuthenticated] # 인증받은 유저만 가능
         else: # 이 외 모든 경우
             # 우리만의 permission을 넣어야 함, 우리가 원하는 permission을 제공하지 않아서 만들어야 됨
             # DELETE /rooms/1/ PUT /rooms/1/
-            permission_Classes = [IsOwner]
+            permission_classes = [IsOwner]
+        return [permission() for permission in permission_classes] # 들여쓰기 주의,,ㅠㅠ
+            # permission class를 리턴할 순 없음 
+            # permission을 호출할건데 대상은 permission_classes에 있는 모든 permission
 
 
 @api_view(["GET"])
