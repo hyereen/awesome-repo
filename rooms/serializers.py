@@ -5,6 +5,8 @@ from .models import Room
 class RoomSerializer(serializers.ModelSerializer):
 
     user = RelatedUserSerializer()
+    is_fav = serializers.SerializerMethodField()
+
     class Meta:
         model = Room
         exclude = ("modified",)
@@ -25,3 +27,13 @@ class RoomSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Not enough time between changes")
 
         return data #반드시!
+
+    def get_is_fav(self, obj):
+        # self는 serializer, obj는 현재 처리되고 있는 room
+        request = self.context.get("request")
+        if request:
+            user = request.user
+            if user.is_authenticated:
+                return obj in user.favs.all() #user.favs.all()는 배열 
+                # 1 in [1,2,3] 이어서 그 결과가 True인지 False인지 알 수 있게됨 
+        return False
