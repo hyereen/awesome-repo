@@ -147,3 +147,8 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.SessionAuthentication', # 이걸 지우면 인증이 변경되었다고 뜨고 더이상 로그인 상태가 아니게 됨
     ]
 }
+
+if not DEBUG:
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] =[
+        'rest_framework.renderers.JSONRenderer',
+    ]
